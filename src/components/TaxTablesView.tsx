@@ -1,36 +1,37 @@
 import { useState } from "react";
 import {
-  TABLA_ISR_QUINCENAL,
-  TABLA_ISR_MENSUAL,
-  TABLA_ISR_ANUAL,
+  getYearlyConfig,
   ISRTableRow,
-  SUBSIDIO_MENSUAL_2025_TOPE,
-  SUBSIDIO_MENSUAL_2025_CANTIDAD,
 } from "../utils/tax-tables";
 import { formatCurrency } from "../utils/format";
 
 type TabType = "quincenal" | "mensual" | "anual" | "subsidio";
 
-export default function TaxTablesView() {
+interface Props {
+  year?: number;
+}
+
+export default function TaxTablesView({ year = 2025 }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>("quincenal");
+  const config = getYearlyConfig(year);
 
   const getTableData = (): ISRTableRow[] => {
     switch (activeTab) {
       case "quincenal":
-        return TABLA_ISR_QUINCENAL;
+        return config.tablaIsrQuincenal;
       case "mensual":
-        return TABLA_ISR_MENSUAL;
+        return config.tablaIsrMensual;
       case "anual":
-        return TABLA_ISR_ANUAL;
+        return config.tablaIsrAnual;
       default:
-        return TABLA_ISR_QUINCENAL;
+        return config.tablaIsrQuincenal;
     }
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 mt-8">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">
-        Tablas de ISR y Subsidio 2025
+        Tablas de ISR y Subsidio {year}
       </h3>
 
       <div className="border-b border-gray-200 mb-4">
@@ -81,35 +82,32 @@ export default function TaxTablesView() {
       {activeTab === "subsidio" ? (
         <div className="p-4 bg-gray-50 rounded border border-gray-100">
           <h4 className="font-semibold text-gray-900 mb-2">
-            Nuevo Esquema de Subsidio al Empleo (Mayo 2024 / 2025)
+            Esquema de Subsidio al Empleo ({year})
           </h4>
           <p className="text-sm text-gray-700 mb-4">
-            A partir del 1 de mayo de 2024, el subsidio al empleo dejó de ser
-            una tabla con rangos para convertirse en una cuota fija basada en la
-            UMA, aplicable a trabajadores que no excedan un límite de ingresos.
+            A partir de mayo de 2024, el subsidio al empleo es una cuota fija basada en la
+            UMA vigente, aplicable a trabajadores que no excedan un límite de ingresos.
           </p>
           <ul className="list-disc pl-5 text-sm space-y-2 text-gray-800">
             <li>
               <span className="font-medium">Tope de Ingresos Mensuales:</span>{" "}
-              {formatCurrency(SUBSIDIO_MENSUAL_2025_TOPE)}
+              {formatCurrency(config.subsidioMensualTope)}
             </li>
             <li>
               <span className="font-medium">Monto del Subsidio Mensual:</span>{" "}
-              {formatCurrency(SUBSIDIO_MENSUAL_2025_CANTIDAD)}
+              {formatCurrency(config.subsidioMensualCantidad)}
               <span className="text-gray-500 text-xs ml-2">
-                (13.8% de la UMA Mensual vigente)
+                (13.8% de la UMA Mensual {year})
               </span>
             </li>
             <li>
-              <span className="font-medium">Regla de Aplicación:</span> Si el
-              trabajador gana menos del tope, se le aplica el subsidio contra su
-              ISR. Si el subsidio es mayor al ISR, el impuesto a pagar será
-              cero, pero
+              <span className="font-medium">Regla de Aplicación:</span> El subsidio se aplica contra el
+              ISR determinado. Si el subsidio es mayor al ISR, el impuesto a pagar será
+              cero.
               <span className="font-bold text-red-600">
                 {" "}
-                NO se entrega la diferencia en efectivo
+                NO se entrega la diferencia en efectivo.
               </span>
-              .
             </li>
           </ul>
         </div>

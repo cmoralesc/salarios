@@ -1,4 +1,4 @@
-import { UMA_DIARIA, SALARIO_MINIMO_GENERAL } from "./tax-tables";
+import { getYearlyConfig } from "./tax-tables";
 
 export interface ImssBreakdown {
   employer: {
@@ -11,6 +11,7 @@ export interface ImssBreakdown {
     guarderias: number;
     retiro: number;
     cesantia: number;
+    cesantiaRate: number;
     infonavit: number;
     total: number;
   };
@@ -40,6 +41,7 @@ const P_PATRON_INVALIDEZ = 0.0175;
 const P_PATRON_GUARDERIAS = 0.01;
 const P_PATRON_RETIRO = 0.02;
 const P_PATRON_INFONAVIT = 0.05;
+
 // Riesgo de trabajo varía por empresa (Clase I mínima)
 export const RISK_CLASSES = [
   { label: "Clase I (0.54355%)", value: 0.0054355 },
@@ -49,12 +51,28 @@ export const RISK_CLASSES = [
   { label: "Clase V (7.58875%)", value: 0.0758875 },
 ];
 
-// Tabla Cesantía Patronal 2025 (Reforma Pensiones - Artículo Segundo Transitorio)
-const getTasaCesantiaPatronal = (sbc: number): number => {
-  // 1.0 SM
-  if (sbc <= SALARIO_MINIMO_GENERAL) return 0.0315;
+/**
+ * Tabla Cesantía Patronal (Reforma Pensiones - Artículo Segundo Transitorio)
+ * Las tasas aumentan gradualmente cada año hasta 2030.
+ */
+const getTasaCesantiaPatronal = (sbc: number, year: number, config: any): number => {
+  const sm = config.salarioMinimoGeneral;
+  const uma = config.umaDiaria;
 
-  const vecesUMA = sbc / UMA_DIARIA;
+  // 1.0 SM
+  if (sbc <= sm) return 0.0315;
+
+  const vecesUMA = sbc / uma;
+
+  if (year === 2026) {
+    if (vecesUMA <= 1.5) return 0.03843; // Incremeto 2026
+    if (vecesUMA <= 2.0) return 0.05193;
+    if (vecesUMA <= 2.5) return 0.06001;
+    if (vecesUMA <= 3.0) return 0.06540;
+    if (vecesUMA <= 3.5) return 0.06925;
+    if (vecesUMA <= 4.0) return 0.07214;
+    return 0.08241; // 4.01 UMA en adelante
+  }
 
   // Rangos 2025
   if (vecesUMA <= 1.5) return 0.03544;
@@ -63,28 +81,27 @@ const getTasaCesantiaPatronal = (sbc: number): number => {
   if (vecesUMA <= 3.0) return 0.05307;
   if (vecesUMA <= 3.5) return 0.05559;
   if (vecesUMA <= 4.0) return 0.05747;
-
-  // 4.01 UMA en adelante
-  return 0.06422;
+  return 0.06422; // 4.01 UMA en adelante
 };
 
 export const calculateIMSS = (
   sbc: number,
   dias: number = 15,
   riskPremium: number = RISK_CLASSES[0].value,
-  dailySalary?: number // Nuevo parámetro opcional
+  dailySalary?: number,
+  year: number = 2025
 ): ImssBreakdown => {
+  const config = getYearlyConfig(year);
+  const umaDiaria = config.umaDiaria;
+  const sm = config.salarioMinimoGeneral;
+
   // Bases de Cotización
-  const umaDiaria = UMA_DIARIA;
   const sbcTope = umaDiaria * 25; // Tope 25 UMAs
   const baseCotizacion = Math.min(sbc, sbcTope);
   const baseExcedente = Math.max(baseCotizacion - umaDiaria * 3, 0);
 
   // Verificación Salario Mínimo (Artículo 36 LSS)
-  // Si el trabajador gana el salario mínimo como cuota diaria, el patrón paga la cuota obrera.
-  // Nota: Usamos un pequeño margen de tolerancia por redondeo si es necesario, pero la ley es estricta con la cuota diaria.
-  const isMinimumWage =
-    dailySalary !== undefined && dailySalary <= SALARIO_MINIMO_GENERAL + 0.01;
+  const isMinimumWage = dailySalary !== undefined && dailySalary <= sm + 0.01;
 
   // Cálculo Obrero
   let empExcedente = baseExcedente * P_OBRERO_EXCEDENTE * dias;
@@ -105,40 +122,25 @@ export const calculateIMSS = (
     empExcedente + empPrestDinero + empGastosMed + empInvalidez + empCesantia;
 
   // Cálculo Patrón
-  const patCuotaFija = umaDiaria * P_PATRON_CUOTA_FIJA_UMA * dias; // Se paga por días laborados
+  const patCuotaFija = umaDiaria * P_PATRON_CUOTA_FIJA_UMA * dias;
   const patExcedente = baseExcedente * P_PATRON_EXCEDENTE * dias;
   const patPrestDinero = baseCotizacion * P_PATRON_PREST_DINERO * dias;
   const patGastosMed = baseCotizacion * P_PATRON_GASTOS_MED * dias;
-  const patRiesgo = baseCotizacion * riskPremium * dias; // Usando prima variable
+  const patRiesgo = baseCotizacion * riskPremium * dias;
   const patInvalidez = baseCotizacion * P_PATRON_INVALIDEZ * dias;
   const patGuarderias = baseCotizacion * P_PATRON_GUARDERIAS * dias;
   const patRetiro = baseCotizacion * P_PATRON_RETIRO * dias;
 
-  const tasaCesantia = getTasaCesantiaPatronal(baseCotizacion);
+  const tasaCesantia = getTasaCesantiaPatronal(baseCotizacion, year, config);
   const patCesantia = baseCotizacion * tasaCesantia * dias;
 
   const patInfonavit = baseCotizacion * P_PATRON_INFONAVIT * dias;
 
-  // Si es salario mínimo, sumar la cuota obrera al costo patronal (excepto Infonavit y Retiro que ya son patronales)
-  // Pero ojo: La ley dice "Corresponde al patrón pagar íntegramente la cuota señalada para los trabajadores"
-  // Esto significa que el costo para el patrón AUMENTA en la cantidad que le correspondía al obrero.
-
   let extraEmployerCost = 0;
   if (isMinimumWage) {
-    // Recalcular lo que hubiera pagado el obrero para sumarlo al patrón
-    const originalEmpExcedente = baseExcedente * P_OBRERO_EXCEDENTE * dias;
-    const originalEmpPrestDinero =
-      baseCotizacion * P_OBRERO_PREST_DINERO * dias;
-    const originalEmpGastosMed = baseCotizacion * P_OBRERO_GASTOS_MED * dias;
-    const originalEmpInvalidez = baseCotizacion * P_OBRERO_INVALIDEZ * dias;
-    const originalEmpCesantia = baseCotizacion * P_OBRERO_CESANTIA * dias;
-
     extraEmployerCost =
-      originalEmpExcedente +
-      originalEmpPrestDinero +
-      originalEmpGastosMed +
-      originalEmpInvalidez +
-      originalEmpCesantia;
+      (baseExcedente * P_OBRERO_EXCEDENTE * dias) +
+      (baseCotizacion * (P_OBRERO_PREST_DINERO + P_OBRERO_GASTOS_MED + P_OBRERO_INVALIDEZ + P_OBRERO_CESANTIA) * dias);
   }
 
   const totalEmployer =
@@ -152,7 +154,7 @@ export const calculateIMSS = (
     patRetiro +
     patCesantia +
     patInfonavit +
-    extraEmployerCost; // Se suma el costo absorbido
+    extraEmployerCost;
 
   return {
     employer: {
@@ -165,6 +167,7 @@ export const calculateIMSS = (
       guarderias: patGuarderias,
       retiro: patRetiro,
       cesantia: patCesantia,
+      cesantiaRate: tasaCesantia,
       infonavit: patInfonavit,
       total: totalEmployer,
     },

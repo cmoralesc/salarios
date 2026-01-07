@@ -1,13 +1,7 @@
 import {
-  TABLA_ISR_QUINCENAL,
-  TABLA_ISR_ANUAL,
-  SUBSIDIO_MENSUAL_2025_TOPE,
-  SUBSIDIO_MENSUAL_2025_CANTIDAD,
-  TASA_ISN,
+  getYearlyConfig,
   getDiasVacaciones,
-  DIAS_VACACIONES,
-  UMA_DIARIA,
-  SALARIO_MINIMO_GENERAL,
+  YearlyConfig,
 } from "./tax-tables";
 import { calculateIMSS, ImssBreakdown } from "./imss";
 
@@ -43,14 +37,18 @@ export interface AnnualProjection {
   totalEmployerCost: number;
   sdi: number;
   dailySalary: number;
+  seniority: number;
+  vacationDays: number;
+  integrationFactor: number;
   annualIsrData: AnnualIsrData;
 }
 
-const calculateISRAnual = (annualTaxableIncome: number): number => {
+const calculateISRAnual = (annualTaxableIncome: number, config: YearlyConfig): number => {
   if (annualTaxableIncome <= 0) return 0;
 
-  const row = TABLA_ISR_ANUAL.find((r, index) => {
-    const nextRow = TABLA_ISR_ANUAL[index + 1];
+  const tabla = config.tablaIsrAnual;
+  const row = tabla.find((r, index) => {
+    const nextRow = tabla[index + 1];
     return (
       annualTaxableIncome >= r.limiteInferior &&
       (!nextRow || annualTaxableIncome < nextRow.limiteInferior)
@@ -65,13 +63,15 @@ const calculateISRAnual = (annualTaxableIncome: number): number => {
 };
 
 const calculateISR = (
-  taxableIncome: number
+  taxableIncome: number,
+  config: YearlyConfig
 ): { isrDeterminado: number; subsidioAplicado: number } => {
   if (taxableIncome <= 0) return { isrDeterminado: 0, subsidioAplicado: 0 };
 
   // Buscar rango
-  const row = TABLA_ISR_QUINCENAL.find((r, index) => {
-    const nextRow = TABLA_ISR_QUINCENAL[index + 1];
+  const tabla = config.tablaIsrQuincenal;
+  const row = tabla.find((r, index) => {
+    const nextRow = tabla[index + 1];
     return (
       taxableIncome >= r.limiteInferior &&
       (!nextRow || taxableIncome < nextRow.limiteInferior)
@@ -85,14 +85,9 @@ const calculateISR = (
     isrDeterminado = impuestoMarginal + row.cuotaFija;
   }
 
-  // Subsidio al Empleo 2025
-  // Regla: 13.8% de la UMA Mensual para ingresos mensuales <= $10,171.00
-  // Para cálculo quincenal:
-  // Tope Quincenal = Tope Mensual / 2
-  // Subsidio Quincenal = Subsidio Mensual / 2
-
-  const topeQuincenal = SUBSIDIO_MENSUAL_2025_TOPE / 2;
-  const subsidioQuincenal = SUBSIDIO_MENSUAL_2025_CANTIDAD / 2;
+  // Subsidio al Empleo (Regla variando por año)
+  const topeQuincenal = config.subsidioMensualTope / 2;
+  const subsidioQuincenal = config.subsidioMensualCantidad / 2;
 
   let subsidioAplicado = 0;
 
@@ -120,9 +115,14 @@ export const calculateSDI = (
 export const calculatePayrollProjection = (
   dailySalary: number,
   startDate: Date,
-  riskPremium?: number
+  riskPremium?: number,
+  year: number = 2025
 ): AnnualProjection => {
-  const today = new Date();
+  const config = getYearlyConfig(year);
+  const umaDiaria = config.umaDiaria;
+  const sm = config.salarioMinimoGeneral;
+  const tasaIsn = config.tasaIsn;
+
   const entryYear = startDate.getFullYear();
   const entryMonth = startDate.getMonth();
   const entryDay = startDate.getDate();
@@ -130,11 +130,13 @@ export const calculatePayrollProjection = (
   // Calcular antigüedad aproximada para el año actual de proyección
   // Asumimos proyección del año calendario actual (Ene-Dic)
   // O proyección a 12 meses futuros. Haremos año calendario estándar.
-  const currentYear = today.getFullYear();
-  const yearsOfService = Math.max(0, currentYear - entryYear); // Antigüedad base
+  // Calcular antigüedad para el año de proyección (año de empleo que está cursando)
+  const yearsOfService = Math.max(1, year - entryYear + 1);
 
-  // SDI
-  const sdi = calculateSDI(dailySalary, yearsOfService);
+  // SDI (Se calculará por periodo para mayor precisión si hay aniversario)
+  let sdi = 0;
+  let vacationDays = 0; // Will be set in the first period
+  let integrationFactor = 0; // Will be set in the first period
 
   const periods: PayrollPeriod[] = [];
   let annualNet = 0;
@@ -181,20 +183,21 @@ export const calculatePayrollProjection = (
     let exemptIncome = 0;
 
     if (isAguinaldoPeriod) {
-      exemptIncome += Math.min(dailySalary * 15, UMA_DIARIA * 30);
+      exemptIncome += Math.min(dailySalary * 15, umaDiaria * 30);
     }
     if (isPrimaPeriod) {
       const diasVac = getDiasVacaciones(yearsOfService);
       const prima = dailySalary * diasVac * 0.25;
-      exemptIncome += Math.min(prima, UMA_DIARIA * 15);
+      exemptIncome += Math.min(prima, umaDiaria * 15);
     }
 
     const { isrDeterminado, subsidioAplicado } = calculateISR(
-      taxableIncome - exemptIncome
+      taxableIncome - exemptIncome,
+      config
     );
 
     // Artículo 96 LISR: No se efectuará retención a las personas que en el mes únicamente perciban un salario mínimo general.
-    const isMinimumWage = dailySalary <= SALARIO_MINIMO_GENERAL + 0.01;
+    const isMinimumWage = dailySalary <= sm + 0.01;
     let finalIsr = isrDeterminado;
     let finalSubsidio = subsidioAplicado;
 
@@ -211,13 +214,34 @@ export const calculatePayrollProjection = (
     totalIsrRetained += periodIsrRetained;
     totalSubsidioCorrespondiente += finalSubsidio;
 
+    // Determinar antigüedad para esta quincena específica
+    // (Aproximación mensual: si el mes actual es >= mes de ingreso, ya cumplió año)
+    const currentPeriodMonth = Math.floor((i - 1) / 2);
+    let effectiveYearsOfService = year - entryYear;
+    if (currentPeriodMonth >= entryMonth) {
+      effectiveYearsOfService += 1;
+    }
+    effectiveYearsOfService = Math.max(1, effectiveYearsOfService);
+
+    // SDI específico para este periodo
+    const periodVacationDays = getDiasVacaciones(effectiveYearsOfService);
+    const periodIntegrationFactor = 1 + (15 + periodVacationDays * 0.25) / 365;
+    const periodSdi = dailySalary * periodIntegrationFactor;
+
+    // Actualizar el SDI y factores de la respuesta (usamos el del primer periodo como referencia principal)
+    if (i === 1) {
+      sdi = periodSdi;
+      vacationDays = periodVacationDays;
+      integrationFactor = periodIntegrationFactor;
+    }
+
     // IMSS
-    const imssCalc = calculateIMSS(sdi, daysInPeriod, riskPremium, dailySalary);
+    const imssCalc = calculateIMSS(periodSdi, daysInPeriod, riskPremium, dailySalary, year);
     const imssEmp = imssCalc.employee.total;
     const imssPat = imssCalc.employer.total;
 
     // ISN (4% sobre Remuneraciones)
-    const isn = totalGross * TASA_ISN;
+    const isn = totalGross * tasaIsn;
 
     // Ajuste Subsidio 2024/2025: El subsidio solo acredita el ISR, no se entrega efectivo.
     // Si subsidio > ISR, el ISR retenido es 0, y el neto es (Bruto - IMSS).
@@ -250,7 +274,7 @@ export const calculatePayrollProjection = (
 
   // Cálculo Anual
   // El ISR Anual Neto debe considerar el subsidio acumulado
-  let annualIsrBruto = calculateISRAnual(totalTaxableIncome);
+  const annualIsrBruto = calculateISRAnual(totalTaxableIncome, config);
   let annualIsrNeto = Math.max(
     0,
     annualIsrBruto - totalSubsidioCorrespondiente
@@ -260,7 +284,7 @@ export const calculatePayrollProjection = (
   // Aunque el cálculo anual aritméticamente arroje impuesto, el Artículo 96 LISR exenta la retención mensual,
   // y el Artículo 97 LFT prohíbe descuentos al salario mínimo.
   // Por tanto, no se debe generar un impuesto a cargo (ajuste) que reduzca el salario mínimo.
-  const isMinimumWageWorker = dailySalary <= SALARIO_MINIMO_GENERAL + 0.01;
+  const isMinimumWageWorker = dailySalary <= sm + 0.01;
   if (isMinimumWageWorker) {
     annualIsrNeto = 0;
   }
@@ -275,6 +299,9 @@ export const calculatePayrollProjection = (
     totalEmployerCost: annualCost,
     sdi,
     dailySalary,
+    seniority: yearsOfService,
+    vacationDays,
+    integrationFactor,
     annualIsrData: {
       totalTaxableIncome,
       annualIsr: annualIsrNeto, // Return the Net Annual ISR

@@ -1,11 +1,18 @@
 import React from "react";
 
-export default function ImssCalculationExplanation() {
+interface Props {
+  year?: number;
+}
+
+export default function ImssCalculationExplanation({ year = 2025 }: Props) {
+  const is2026 = year === 2026;
+  const umaValue = is2026 ? "118.84" : "113.14";
+
   return (
     <div className="bg-white shadow overflow-hidden sm:rounded-lg">
       <div className="px-4 py-5 sm:px-6">
         <h3 className="text-lg leading-6 font-medium text-gray-900">
-          Metodología de Cálculo IMSS 2025
+          Metodología de Cálculo IMSS {year}
         </h3>
         <p className="mt-1 max-w-2xl text-sm text-gray-800">
           Desglose de cuotas obrero-patronales y bases de cotización utilizadas.
@@ -24,7 +31,7 @@ export default function ImssCalculationExplanation() {
             </li>
             <li>
               <strong>UMA (Unidad de Medida y Actualización):</strong>{" "}
-              Referencia económica ($113.14 MXN en 2025).
+              Referencia económica (${umaValue} MXN en {year}).
             </li>
             <li>
               <strong>Cuota Fija Patronal:</strong> 20.40% aplicado sobre 1 UMA
@@ -189,15 +196,15 @@ export default function ImssCalculationExplanation() {
           </div>
         </div>
 
-        {/* Tabla Cesantía Patronal 2025 */}
+        {/* Tabla Cesantía Patronal Progresiva */}
         <div>
           <h4 className="text-md font-bold text-gray-900 mb-2">
-            Cuota Patronal Progresiva: Cesantía y Vejez (2025)
+            Cuota Patronal Progresiva: Cesantía y Vejez ({year})
           </h4>
           <p className="text-sm text-gray-800 mb-4">
             Según reforma al sistema de pensiones (Artículo Segundo
             Transitorio), vigente a partir de 2023 con incremento gradual hasta
-            2030. Valores para 2025:
+            2030. Valores para {year}:
           </p>
           <div className="overflow-x-auto max-w-lg">
             <table className="min-w-full divide-y divide-gray-200 text-sm border">
@@ -213,7 +220,7 @@ export default function ImssCalculationExplanation() {
                     scope="col"
                     className="px-4 py-2 text-left font-medium text-indigo-800"
                   >
-                    Cuota Patronal 2025
+                    Cuota Patronal {year}
                   </th>
                 </tr>
               </thead>
@@ -226,33 +233,33 @@ export default function ImssCalculationExplanation() {
                   <td className="px-4 py-2 text-gray-800">
                     1.01 SM a 1.50 UMA
                   </td>
-                  <td className="px-4 py-2 text-gray-900">3.544%</td>
+                  <td className="px-4 py-2 text-gray-900">{is2026 ? "3.843%" : "3.544%"}</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2 text-gray-800">1.51 a 2.00 UMA</td>
-                  <td className="px-4 py-2 text-gray-900">4.426%</td>
+                  <td className="px-4 py-2 text-gray-900">{is2026 ? "5.193%" : "4.426%"}</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2 text-gray-800">2.01 a 2.50 UMA</td>
-                  <td className="px-4 py-2 text-gray-900">4.954%</td>
+                  <td className="px-4 py-2 text-gray-900">{is2026 ? "6.001%" : "4.954%"}</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2 text-gray-800">2.51 a 3.00 UMA</td>
-                  <td className="px-4 py-2 text-gray-900">5.307%</td>
+                  <td className="px-4 py-2 text-gray-900">{is2026 ? "6.540%" : "5.307%"}</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2 text-gray-800">3.01 a 3.50 UMA</td>
-                  <td className="px-4 py-2 text-gray-900">5.559%</td>
+                  <td className="px-4 py-2 text-gray-900">{is2026 ? "6.925%" : "5.559%"}</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2 text-gray-800">3.51 a 4.00 UMA</td>
-                  <td className="px-4 py-2 text-gray-900">5.747%</td>
+                  <td className="px-4 py-2 text-gray-900">{is2026 ? "7.214%" : "5.747%"}</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2 text-gray-800">
                     4.01 UMA en adelante
                   </td>
-                  <td className="px-4 py-2 text-gray-900">6.422%</td>
+                  <td className="px-4 py-2 text-gray-900">{is2026 ? "8.241%" : "6.422%"}</td>
                 </tr>
               </tbody>
             </table>
