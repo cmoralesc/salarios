@@ -86,7 +86,7 @@ export default function TaxTablesView({ year = 2025 }: Props) {
           </h4>
           <p className="text-sm text-gray-700 mb-4">
             A partir de mayo de 2024, el subsidio al empleo es una cuota fija basada en la
-            UMA vigente, aplicable a trabajadores que no excedan un límite de ingresos.
+            UMA vigente. <span className="italic">Nota: En enero se utiliza la UMA del año anterior; la UMA {year} entra en vigor en febrero.</span>
           </p>
           <ul className="list-disc pl-5 text-sm space-y-2 text-gray-800">
             <li>
@@ -95,10 +95,26 @@ export default function TaxTablesView({ year = 2025 }: Props) {
             </li>
             <li>
               <span className="font-medium">Monto del Subsidio Mensual:</span>{" "}
-              {formatCurrency(config.subsidioMensualCantidad)}
-              <span className="text-gray-500 text-xs ml-2">
-                (13.8% de la UMA Mensual {year})
-              </span>
+              {config.subsidioMensualCantidadEnero && config.subsidioMensualCantidadFebDic ? (
+                <div className="inline">
+                  <span className="text-blue-700 font-semibold">
+                    {formatCurrency(config.subsidioMensualCantidadEnero)}
+                  </span>
+                  <span className="text-gray-500 text-xs ml-1">(Enero)</span>
+                  <span className="mx-2">/</span>
+                  <span className="text-indigo-700 font-semibold">
+                    {formatCurrency(config.subsidioMensualCantidadFebDic)}
+                  </span>
+                  <span className="text-gray-500 text-xs ml-1">(Feb a Dic)</span>
+                </div>
+              ) : (
+                <>
+                  {formatCurrency(config.subsidioMensualCantidad)}
+                  <span className="text-gray-500 text-xs ml-2">
+                    (13.8% de la UMA Mensual {year})
+                  </span>
+                </>
+              )}
             </li>
             <li>
               <span className="font-medium">Regla de Aplicación:</span> El subsidio se aplica contra el

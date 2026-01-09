@@ -7,11 +7,14 @@ export interface ISRTableRow {
 
 export interface YearlyConfig {
   umaDiaria: number;
+  umaDiariaEnero?: number; // Específico para 2026
   salarioMinimoGeneral: number;
   salarioMinimoFrontera: number;
   tasaIsn: number;
   subsidioMensualTope: number;
   subsidioMensualCantidad: number;
+  subsidioMensualCantidadEnero?: number; // Específico para 2026
+  subsidioMensualCantidadFebDic?: number; // Específico para 2026
   tablaIsrQuincenal: ISRTableRow[];
   tablaIsrMensual: ISRTableRow[];
   tablaIsrAnual: ISRTableRow[];
@@ -66,14 +69,17 @@ export const CONFIG_2025: YearlyConfig = {
   ],
 };
 
-// Valores 2026 (Actualizados con SM 315.04 y ajuste inflacionario ~13%)
+// Valores 2026 (Actualizados con SM 315.04 y UMA Oficial del INEGI)
 export const CONFIG_2026: YearlyConfig = {
-  umaDiaria: 118.84, // Estimado (~5% de incremento)
+  umaDiaria: 117.31,
+  umaDiariaEnero: 113.14, // UMA 2025 aplicada en Enero 2026
   salarioMinimoGeneral: 315.04,
   salarioMinimoFrontera: 474.46, // 13% incremento
   tasaIsn: 0.04,
-  subsidioMensualTope: 11493.23, // Ajustado por SM 2026? Por ahora SM * 30.4 aprox
-  subsidioMensualCantidad: 536.35, // 13.8% de UMA 2026 (118.84 * 30.4 * 0.138)
+  subsidioMensualTope: 11492.66,
+  subsidioMensualCantidad: 535.65, // Valor Feb-Dic
+  subsidioMensualCantidadEnero: 536.22,
+  subsidioMensualCantidadFebDic: 535.65,
   tablaIsrQuincenal: [
     { limiteInferior: 0.01, cuotaFija: 0.0, porcentaje: 0.0192 },
     { limiteInferior: 416.74, cuotaFija: 8.0, porcentaje: 0.064 },

@@ -1,4 +1,4 @@
-import { getYearlyConfig } from "./tax-tables";
+import { getYearlyConfig, YearlyConfig } from "./tax-tables";
 
 export interface ImssBreakdown {
   employer: {
@@ -55,9 +55,9 @@ export const RISK_CLASSES = [
  * Tabla Cesantía Patronal (Reforma Pensiones - Artículo Segundo Transitorio)
  * Las tasas aumentan gradualmente cada año hasta 2030.
  */
-const getTasaCesantiaPatronal = (sbc: number, year: number, config: any): number => {
+const getTasaCesantiaPatronal = (sbc: number, year: number, config: YearlyConfig, umaOverride?: number): number => {
   const sm = config.salarioMinimoGeneral;
-  const uma = config.umaDiaria;
+  const uma = umaOverride || config.umaDiaria;
 
   // 1.0 SM
   if (sbc <= sm) return 0.0315;
@@ -89,10 +89,11 @@ export const calculateIMSS = (
   dias: number = 15,
   riskPremium: number = RISK_CLASSES[0].value,
   dailySalary?: number,
-  year: number = 2025
+  year: number = 2025,
+  umaOverride?: number
 ): ImssBreakdown => {
   const config = getYearlyConfig(year);
-  const umaDiaria = config.umaDiaria;
+  const umaDiaria = umaOverride || config.umaDiaria;
   const sm = config.salarioMinimoGeneral;
 
   // Bases de Cotización
@@ -131,7 +132,7 @@ export const calculateIMSS = (
   const patGuarderias = baseCotizacion * P_PATRON_GUARDERIAS * dias;
   const patRetiro = baseCotizacion * P_PATRON_RETIRO * dias;
 
-  const tasaCesantia = getTasaCesantiaPatronal(baseCotizacion, year, config);
+  const tasaCesantia = getTasaCesantiaPatronal(baseCotizacion, year, config, umaOverride);
   const patCesantia = baseCotizacion * tasaCesantia * dias;
 
   const patInfonavit = baseCotizacion * P_PATRON_INFONAVIT * dias;

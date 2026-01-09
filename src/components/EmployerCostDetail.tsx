@@ -18,12 +18,27 @@ export default function EmployerCostDetail({ periods }: EmployerCostDetailProps)
     retiro: periods[0].imssBreakdown.employer.retiro + periods[1].imssBreakdown.employer.retiro,
     cesantia: periods[0].imssBreakdown.employer.cesantia + periods[1].imssBreakdown.employer.cesantia,
     infonavit: periods[0].imssBreakdown.employer.infonavit + periods[1].imssBreakdown.employer.infonavit,
-    total: periods[0].imssBreakdown.employer.total + periods[1].imssBreakdown.employer.total,
+    aguinaldo: periods[0].aguinaldoProvision + periods[1].aguinaldoProvision,
+    primaVacacional: periods[0].primaVacacionalProvision + periods[1].primaVacacionalProvision,
+    isnProvision: periods[0].isnProvision + periods[1].isnProvision,
+    total: periods[0].totalEmployerCost + periods[1].totalEmployerCost,
   };
 
-  const monthlyIsn = periods[0].isn + periods[1].isn;
+  const monthlyIsn = (periods[0].isn + periods[0].isnProvision) + (periods[1].isn + periods[1].isnProvision);
   const monthlyGrossSalary = periods[0].grossSalary + periods[1].grossSalary;
   const monthlyEmployerCost = periods[0].totalEmployerCost + periods[1].totalEmployerCost;
+
+  const subtotalImss =
+    monthlyBreakdown.cuotaFija +
+    monthlyBreakdown.excedente +
+    monthlyBreakdown.prestacionesDinero +
+    monthlyBreakdown.gastosMedicos +
+    monthlyBreakdown.riesgoTrabajo +
+    monthlyBreakdown.invalidezVida +
+    monthlyBreakdown.guarderias;
+
+  const imssPlusIsn = subtotalImss + monthlyIsn;
+  const rcvPlusVivienda = monthlyBreakdown.retiro + monthlyBreakdown.cesantia + monthlyBreakdown.infonavit;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
@@ -85,12 +100,7 @@ export default function EmployerCostDetail({ periods }: EmployerCostDetailProps)
             <li className="flex justify-between border-t pt-1 mt-1 font-semibold text-gray-900">
               <span>Subtotal IMSS</span>
               <span>
-                {formatCurrency(
-                  monthlyBreakdown.total -
-                    monthlyBreakdown.retiro -
-                    monthlyBreakdown.cesantia -
-                    monthlyBreakdown.infonavit
-                )}
+                {formatCurrency(subtotalImss)}
               </span>
             </li>
           </ul>
@@ -148,14 +158,43 @@ export default function EmployerCostDetail({ periods }: EmployerCostDetailProps)
           </ul>
 
           <h4 className="font-medium text-orange-700 mt-4 mb-2 border-b pb-1">
+            Provisiones Mensuales
+          </h4>
+          <ul className="space-y-2 text-sm text-gray-800">
+            <li className="flex justify-between">
+              <span>Aguinaldo (1/12)</span>
+              <span className="font-medium">
+                {formatCurrency(monthlyBreakdown.aguinaldo)}
+              </span>
+            </li>
+            <li className="flex justify-between">
+              <span>Prima Vacacional (1/12)</span>
+              <span className="font-medium">
+                {formatCurrency(monthlyBreakdown.primaVacacional)}
+              </span>
+            </li>
+          </ul>
+
+          <h4 className="font-medium text-orange-700 mt-4 mb-2 border-b pb-1">
             Salario Bruto
           </h4>
           <ul className="space-y-2 text-sm text-gray-800">
             <li className="flex justify-between">
-              <span>Salario Bruto Mensual</span>
+              <span>Salario Bruto Mensual (Q1+Q2)</span>
               <span className="font-medium">{formatCurrency(monthlyGrossSalary)}</span>
             </li>
           </ul>
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+        <div className="bg-blue-50 p-3 rounded border border-blue-100 flex justify-between items-center">
+          <span className="text-sm font-semibold text-blue-800">Σ IMSS + Impuestos Locales</span>
+          <span className="font-bold text-blue-900">{formatCurrency(imssPlusIsn)}</span>
+        </div>
+        <div className="bg-purple-50 p-3 rounded border border-purple-100 flex justify-between items-center">
+          <span className="text-sm font-semibold text-purple-800">Σ RCV + Vivienda</span>
+          <span className="font-bold text-purple-900">{formatCurrency(rcvPlusVivienda)}</span>
         </div>
       </div>
 

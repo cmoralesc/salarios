@@ -57,7 +57,8 @@ export default function Home2026() {
             </div>
             <div className="bg-teal-600 p-4 rounded-xl shadow-md text-white">
               <h3 className="text-xs font-semibold opacity-80 uppercase tracking-wider">UMA 2026</h3>
-              <p className="text-2xl font-bold mt-1">$118.84</p>
+              <p className="text-2xl font-bold mt-1">$117.31</p>
+              <p className="text-[10px] opacity-70 mt-1 font-medium italic">En Enero se aplica UMA 2025 ($113.14)</p>
             </div>
             <div className="bg-indigo-600 p-4 rounded-xl shadow-md text-white">
               <div className="flex flex-col">
@@ -80,7 +81,7 @@ export default function Home2026() {
           <div className="flex">
             <div className="ml-3">
               <p className="text-sm text-amber-700">
-                <span className="font-bold">Nota 2026:</span> Esta proyección utiliza el Salario Mínimo General aprobado de <strong>$315.04</strong> y estimaciones de UMA e ISR basadas en la inflación.
+                <span className="font-bold">Nota 2026:</span> Esta proyección utiliza el Salario Mínimo General y el valor oficial de la UMA publicados por el <span className="font-bold">INEGI</span>.
               </p>
             </div>
           </div>

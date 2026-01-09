@@ -20,6 +20,9 @@ export interface PayrollPeriod {
   imssEmployer: number;
   infonavitEmployer: number;
   isn: number;
+  aguinaldoProvision: number;
+  primaVacacionalProvision: number;
+  isnProvision: number;
   totalEmployerCost: number;
   imssBreakdown: ImssBreakdown;
 }
@@ -64,38 +67,53 @@ const calculateISRAnual = (annualTaxableIncome: number, config: YearlyConfig): n
 
 const calculateISR = (
   taxableIncome: number,
-  config: YearlyConfig
+  config: YearlyConfig,
+  isEnero: boolean = false
 ): { isrDeterminado: number; subsidioAplicado: number } => {
   if (taxableIncome <= 0) return { isrDeterminado: 0, subsidioAplicado: 0 };
 
-  // Buscar rango
-  const tabla = config.tablaIsrQuincenal;
+  // Proyectar a mensual para usar tablas mensuales (Regla 30.4 días)
+  const incomeMensual = taxableIncome * 2;
+
+  // Buscar rango en tabla mensual
+  const tabla = config.tablaIsrMensual;
   const row = tabla.find((r, index) => {
     const nextRow = tabla[index + 1];
     return (
-      taxableIncome >= r.limiteInferior &&
-      (!nextRow || taxableIncome < nextRow.limiteInferior)
+      incomeMensual >= r.limiteInferior &&
+      (!nextRow || incomeMensual < nextRow.limiteInferior)
     );
   });
 
-  let isrDeterminado = 0;
+  let isrDeterminadoMensual = 0;
   if (row) {
-    const excedente = taxableIncome - row.limiteInferior;
+    const excedente = incomeMensual - row.limiteInferior;
     const impuestoMarginal = excedente * row.porcentaje;
-    isrDeterminado = impuestoMarginal + row.cuotaFija;
+    isrDeterminadoMensual = impuestoMarginal + row.cuotaFija;
   }
 
-  // Subsidio al Empleo (Regla variando por año)
-  const topeQuincenal = config.subsidioMensualTope / 2;
-  const subsidioQuincenal = config.subsidioMensualCantidad / 2;
+  // Subsidio al Empleo (Regla Mensual)
+  const topeMensual = config.subsidioMensualTope;
+  let subsidioMensual = config.subsidioMensualCantidad;
 
-  let subsidioAplicado = 0;
-
-  if (taxableIncome <= topeQuincenal) {
-    subsidioAplicado = subsidioQuincenal;
+  // Ajuste para 2026 (Subsidio variable Enero vs Feb-Dic)
+  if (isEnero && config.subsidioMensualCantidadEnero) {
+    subsidioMensual = config.subsidioMensualCantidadEnero;
+  } else if (!isEnero && config.subsidioMensualCantidadFebDic) {
+    subsidioMensual = config.subsidioMensualCantidadFebDic;
   }
 
-  return { isrDeterminado, subsidioAplicado };
+  let subsidioAplicadoMensual = 0;
+
+  if (incomeMensual <= topeMensual) {
+    subsidioAplicadoMensual = subsidioMensual;
+  }
+
+  // Retornar la mitad para el periodo quincenal
+  return {
+    isrDeterminado: isrDeterminadoMensual / 2,
+    subsidioAplicado: subsidioAplicadoMensual / 2
+  };
 };
 
 export const calculateSDI = (
@@ -155,10 +173,13 @@ export const calculatePayrollProjection = (
     // Q = Month * 2 + (Day > 15 ? 2 : 1)
     const anniversaryQuincena = entryMonth * 2 + (entryDay > 15 ? 2 : 1);
     const isPrimaPeriod = i === anniversaryQuincena;
+    // Determinar si es Enero para el subsidio y UMA 2026
+    const isEnero = i <= 2;
+    const currentUma = (isEnero && config.umaDiariaEnero) ? config.umaDiariaEnero : umaDiaria;
 
     // Sueldo Base Quincenal
-    // Usamos 15.2083 (365/24) para proyección anual precisa de costos y días cotizados
-    const daysInPeriod = 365 / 24;
+    // Usamos 15.2 (30.4 / 2) como base para el periodo trabajado
+    const daysInPeriod = 15.2;
     const salaryQuincenal = dailySalary * daysInPeriod;
 
     // Percepciones Adicionales
@@ -183,17 +204,20 @@ export const calculatePayrollProjection = (
     let exemptIncome = 0;
 
     if (isAguinaldoPeriod) {
-      exemptIncome += Math.min(dailySalary * 15, umaDiaria * 30);
+      exemptIncome += Math.min(dailySalary * 15, currentUma * 30);
     }
     if (isPrimaPeriod) {
       const diasVac = getDiasVacaciones(yearsOfService);
       const prima = dailySalary * diasVac * 0.25;
-      exemptIncome += Math.min(prima, umaDiaria * 15);
+      exemptIncome += Math.min(prima, currentUma * 15);
     }
+
+
 
     const { isrDeterminado, subsidioAplicado } = calculateISR(
       taxableIncome - exemptIncome,
-      config
+      config,
+      isEnero
     );
 
     // Artículo 96 LISR: No se efectuará retención a las personas que en el mes únicamente perciban un salario mínimo general.
@@ -236,18 +260,28 @@ export const calculatePayrollProjection = (
     }
 
     // IMSS
-    const imssCalc = calculateIMSS(periodSdi, daysInPeriod, riskPremium, dailySalary, year);
+    const imssCalc = calculateIMSS(periodSdi, daysInPeriod, riskPremium, dailySalary, year, currentUma);
     const imssEmp = imssCalc.employee.total;
     const imssPat = imssCalc.employer.total;
 
     // ISN (4% sobre Remuneraciones)
     const isn = totalGross * tasaIsn;
 
+    // Provisión Mensual de Prestaciones (Aguinaldo y Prima Vacacional)
+    // Se divide el monto anual entre 24 para obtener la provisión por quincena
+    const aguinaldoAnual = dailySalary * 15;
+    const diasVacAnuales = getDiasVacaciones(effectiveYearsOfService);
+    const primaVacacionalAnual = dailySalary * diasVacAnuales * 0.25;
+
+    const aguinaldoProvision = aguinaldoAnual / 24;
+    const primaVacacionalProvision = primaVacacionalAnual / 24;
+    const isnProvision = (aguinaldoProvision + primaVacacionalProvision) * tasaIsn;
+
     // Ajuste Subsidio 2024/2025: El subsidio solo acredita el ISR, no se entrega efectivo.
     // Si subsidio > ISR, el ISR retenido es 0, y el neto es (Bruto - IMSS).
     const netSalary = totalGross - periodIsrRetained - imssEmp;
 
-    const employerCost = totalGross + imssPat + isn; // Infonavit ya incluido en imssCalc.employer.total (revisar)
+    const employerCost = totalGross + imssPat + isn + aguinaldoProvision + primaVacacionalProvision + isnProvision;
 
     periods.push({
       periodNumber: i,
@@ -264,6 +298,9 @@ export const calculatePayrollProjection = (
       imssEmployer: imssPat,
       infonavitEmployer: imssCalc.employer.infonavit, // Desglosar visualmente si se quiere
       isn: isn,
+      aguinaldoProvision: aguinaldoProvision,
+      primaVacacionalProvision: primaVacacionalProvision,
+      isnProvision: isnProvision,
       totalEmployerCost: employerCost,
       imssBreakdown: imssCalc,
     });
