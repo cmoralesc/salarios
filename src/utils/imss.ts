@@ -65,7 +65,7 @@ const getTasaCesantiaPatronal = (sbc: number, year: number, config: YearlyConfig
   const vecesUMA = sbc / uma;
 
   if (year === 2026) {
-    if (vecesUMA <= 1.5) return 0.03843; // Incremeto 2026
+    if (vecesUMA <= 1.5) return 0.03843; // Incremento 2026
     if (vecesUMA <= 2.0) return 0.05193;
     if (vecesUMA <= 2.5) return 0.06001;
     if (vecesUMA <= 3.0) return 0.06540;

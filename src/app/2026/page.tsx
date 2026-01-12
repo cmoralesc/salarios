@@ -50,7 +50,7 @@ export default function Home2026() {
             Proyección anual, IMSS, ISR y Subsidio al Empleo (Proyectado).
           </p>
           {/* Reference Values */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
             <div className="bg-emerald-600 p-4 rounded-xl shadow-md text-white">
               <h3 className="text-xs font-semibold opacity-80 uppercase tracking-wider">Salario Mínimo 2026</h3>
               <p className="text-2xl font-bold mt-1">$315.04</p>
@@ -71,6 +71,28 @@ export default function Home2026() {
                   <span>•</span>
                   <span>{projection.vacationDays} días vac.</span>
                 </div>
+              </div>
+            </div>
+            <div className="bg-purple-600 p-4 rounded-xl shadow-md text-white">
+              <div className="flex flex-col">
+                <h3 className="text-xs font-semibold opacity-80 uppercase tracking-wider">SBC</h3>
+                <div className="mt-1 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] opacity-70 uppercase font-medium">Enero:</span>
+                    <span className="text-xl font-bold">
+                      {Math.min(projection.sdi, 113.14 * 25).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] opacity-70 uppercase font-medium">Feb-Dic:</span>
+                    <span className="text-xl font-bold">
+                      {Math.min(projection.sdi, 117.31 * 25).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[10px] opacity-70 mt-1 font-medium italic border-t border-purple-400/30 pt-1">
+                  SDI topeado a 25 UMAs
+                </p>
               </div>
             </div>
           </div>
@@ -165,11 +187,6 @@ export default function Home2026() {
           </div>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Ajuste Anual de ISR (2026)</h2>
-            <AnnualAdjustmentSummary data={projection.annualIsrData} />
-          </section>
-
-          <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Neto Mensual del Empleado</h2>
             <MonthlyNetTable periods={projection.periods} />
           </section>
@@ -177,6 +194,11 @@ export default function Home2026() {
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Desglose de Nómina Quincenal</h2>
             <PayrollTable periods={projection.periods} />
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Ajuste Anual de ISR (2026)</h2>
+            <AnnualAdjustmentSummary data={projection.annualIsrData} />
           </section>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">

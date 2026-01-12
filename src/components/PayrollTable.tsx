@@ -1,11 +1,13 @@
 import { PayrollPeriod } from "../utils/nominas";
 import { formatCurrency } from "../utils/format";
+import { exportPayrollToExcel } from "../utils/export";
 
 interface PayrollTableProps {
   periods: PayrollPeriod[];
+  year?: number;
 }
 
-export default function PayrollTable({ periods }: PayrollTableProps) {
+export default function PayrollTable({ periods, year = 2026 }: PayrollTableProps) {
   const totals = periods.reduce(
     (acc, period) => ({
       grossSalary: acc.grossSalary + period.grossSalary,
@@ -67,7 +69,29 @@ export default function PayrollTable({ periods }: PayrollTableProps) {
   );
 
   return (
-    <div className="overflow-x-auto shadow-md sm:rounded-lg mt-6">
+    <div className="mt-6 space-y-4">
+      <div className="flex justify-end">
+        <button
+          onClick={() => exportPayrollToExcel(periods, year)}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors cursor-pointer"
+        >
+          <svg
+            className="-ml-1 mr-2 h-5 w-5"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Exportar a Excel
+        </button>
+      </div>
+
+      <div className="overflow-x-auto shadow-md sm:rounded-lg">
       <table className="w-full text-sm text-left text-gray-500">
         <thead className="text-xs text-gray-700 uppercase bg-gray-50">
           <tr>
@@ -348,6 +372,7 @@ export default function PayrollTable({ periods }: PayrollTableProps) {
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ interface Props {
 
 export default function ImssCalculationExplanation({ year = 2025 }: Props) {
   const is2026 = year === 2026;
-  const umaValue = is2026 ? "118.84" : "113.14";
+  const umaValue = is2026 ? "117.31" : "113.14";
 
   return (
     <div className="bg-white shadow overflow-hidden sm:rounded-lg">

@@ -15,7 +15,6 @@ export interface YearlyConfig {
   subsidioMensualCantidad: number;
   subsidioMensualCantidadEnero?: number; // Específico para 2026
   subsidioMensualCantidadFebDic?: number; // Específico para 2026
-  tablaIsrQuincenal: ISRTableRow[];
   tablaIsrMensual: ISRTableRow[];
   tablaIsrAnual: ISRTableRow[];
 }
@@ -28,19 +27,6 @@ export const CONFIG_2025: YearlyConfig = {
   tasaIsn: 0.04,
   subsidioMensualTope: 10171.0,
   subsidioMensualCantidad: 474.65,
-  tablaIsrQuincenal: [
-    { limiteInferior: 0.01, cuotaFija: 0.0, porcentaje: 0.0192 },
-    { limiteInferior: 368.11, cuotaFija: 7.05, porcentaje: 0.064 },
-    { limiteInferior: 3124.36, cuotaFija: 183.45, porcentaje: 0.1088 },
-    { limiteInferior: 5490.76, cuotaFija: 441.0, porcentaje: 0.16 },
-    { limiteInferior: 6382.81, cuotaFija: 583.65, porcentaje: 0.1792 },
-    { limiteInferior: 7641.91, cuotaFija: 809.25, porcentaje: 0.2136 },
-    { limiteInferior: 15412.81, cuotaFija: 2469.15, porcentaje: 0.2352 },
-    { limiteInferior: 24292.66, cuotaFija: 4557.75, porcentaje: 0.3 },
-    { limiteInferior: 46378.51, cuotaFija: 11183.4, porcentaje: 0.32 },
-    { limiteInferior: 61838.11, cuotaFija: 16130.55, porcentaje: 0.34 },
-    { limiteInferior: 185514.31, cuotaFija: 58180.35, porcentaje: 0.35 },
-  ],
   tablaIsrMensual: [
     { limiteInferior: 0.01, cuotaFija: 0.0, porcentaje: 0.0192 },
     { limiteInferior: 746.05, cuotaFija: 14.32, porcentaje: 0.064 },
@@ -80,19 +66,6 @@ export const CONFIG_2026: YearlyConfig = {
   subsidioMensualCantidad: 535.65, // Valor Feb-Dic
   subsidioMensualCantidadEnero: 536.22,
   subsidioMensualCantidadFebDic: 535.65,
-  tablaIsrQuincenal: [
-    { limiteInferior: 0.01, cuotaFija: 0.0, porcentaje: 0.0192 },
-    { limiteInferior: 416.74, cuotaFija: 8.0, porcentaje: 0.064 },
-    { limiteInferior: 3537.09, cuotaFija: 207.7, porcentaje: 0.1088 },
-    { limiteInferior: 6216.13, cuotaFija: 499.18, porcentaje: 0.16 },
-    { limiteInferior: 7226.04, cuotaFija: 660.69, porcentaje: 0.1792 },
-    { limiteInferior: 8651.47, cuotaFija: 916.2, porcentaje: 0.2136 },
-    { limiteInferior: 17448.77, cuotaFija: 2795.31, porcentaje: 0.2352 },
-    { limiteInferior: 27501.65, cuotaFija: 5159.75, porcentaje: 0.3 },
-    { limiteInferior: 52505.18, cuotaFija: 12660.8, porcentaje: 0.32 },
-    { limiteInferior: 70006.91, cuotaFija: 18261.36, porcentaje: 0.34 },
-    { limiteInferior: 210020.72, cuotaFija: 65866.05, porcentaje: 0.35 },
-  ],
   tablaIsrMensual: [
     { limiteInferior: 0.01, cuotaFija: 0.0, porcentaje: 0.0192 },
     { limiteInferior: 844.6, cuotaFija: 16.22, porcentaje: 0.064 },
@@ -126,7 +99,6 @@ export const UMA_DIARIA = CONFIG_2025.umaDiaria;
 export const SALARIO_MINIMO_GENERAL = CONFIG_2025.salarioMinimoGeneral;
 export const SALARIO_MINIMO_FRONTERA = CONFIG_2025.salarioMinimoFrontera;
 export const TASA_ISN = CONFIG_2025.tasaIsn;
-export const TABLA_ISR_QUINCENAL = CONFIG_2025.tablaIsrQuincenal;
 export const TABLA_ISR_MENSUAL = CONFIG_2025.tablaIsrMensual;
 export const TABLA_ISR_ANUAL = CONFIG_2025.tablaIsrAnual;
 export const SUBSIDIO_MENSUAL_2025_TOPE = CONFIG_2025.subsidioMensualTope;

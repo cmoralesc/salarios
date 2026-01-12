@@ -29,8 +29,10 @@ export interface PayrollPeriod {
 
 export interface AnnualIsrData {
   totalTaxableIncome: number;
+  annualIsrBruto: number;
   annualIsr: number;
   totalIsrRetained: number;
+  totalSubsidio: number;
   isrAdjustment: number;
 }
 
@@ -341,8 +343,10 @@ export const calculatePayrollProjection = (
     integrationFactor,
     annualIsrData: {
       totalTaxableIncome,
+      annualIsrBruto, // ISR before subsidy
       annualIsr: annualIsrNeto, // Return the Net Annual ISR
       totalIsrRetained,
+      totalSubsidio: totalSubsidioCorrespondiente,
       isrAdjustment,
     },
   };

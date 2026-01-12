@@ -24,7 +24,18 @@ export default function AnnualAdjustmentSummary({ data }: Props) {
           
           <div>
              <p className="text-sm text-gray-600 mb-1">ISR Anual Calculado (Tabla Anual)</p>
-             <p className="text-xl font-bold text-gray-900">{formatCurrency(data.annualIsr)}</p>
+             <p className="text-xl font-bold text-gray-900">{formatCurrency(data.annualIsrBruto)}</p>
+          </div>
+
+          <div>
+             <p className="text-sm text-gray-600 mb-1">(-) Subsidio al Empleo Acumulado</p>
+             <p className="text-xl font-bold text-green-700">{formatCurrency(data.totalSubsidio)}</p>
+          </div>
+
+          <div className="bg-blue-50 p-3 rounded border border-blue-200">
+             <p className="text-sm text-gray-600 mb-1">(=) ISR Anual Neto</p>
+             <p className="text-xl font-bold text-blue-900">{formatCurrency(data.annualIsr)}</p>
+             <p className="text-xs text-blue-700 mt-1">Después de aplicar el subsidio</p>
           </div>
 
           <div>
